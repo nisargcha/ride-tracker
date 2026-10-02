@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Virsad Trips" />
+  <meta name="description" content="A simple personal tracker for Virsad morning and evening car rides." />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>Virsad Trips</title>
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">🚗</div>
+        <div>
+          <p class="eyebrow">PERSONAL TRIP TRACKER</p>
+          <h1>Virsad Trips</h1>
+          <p class="subtitle">₹100 per ride · Morning & evening</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="installBtn" class="install-btn hidden" type="button">
+          <span>＋</span> Install App
+        </button>
+        <button id="todayBtn" class="secondary-btn" type="button">Today</button>
+      </div>
+    </header>
+
+    <section class="hero-card">
+      <div>
+        <p class="eyebrow light">THIS MONTH</p>
+        <h2 id="heroAmount">₹0</h2>
+        <p><span id="heroRides">0 rides</span> recorded so far</p>
+      </div>
+      <div class="hero-icon" aria-hidden="true">₹</div>
+    </section>
+
+    <section class="summary-grid" aria-label="Trip summary">
+      <article class="card stat">
+        <div class="stat-icon morning-icon">☀️</div>
+        <div>
+          <span>Morning</span>
+          <strong id="morningCount">0</strong>
+          <small>rides</small>
+        </div>
+      </article>
+      <article class="card stat">
+        <div class="stat-icon evening-icon">🌙</div>
+        <div>
+          <span>Evening</span>
+          <strong id="eveningCount">0</strong>
+          <small>rides</small>
+        </div>
+      </article>
+      <article class="card stat total">
+        <div class="stat-icon total-icon">₹</div>
+        <div>
+          <span>Total</span>
+          <strong id="totalAmount">₹0</strong>
+          <small id="totalRides">0 rides</small>
+        </div>
+      </article>
+    </section>
+
+    <section class="card calendar-card">
+      <div class="calendar-head">
+        <button id="prevMonth" class="icon-btn" aria-label="Previous month">‹</button>
+        <div class="month-title-wrap">
+          <p class="eyebrow">CALENDAR</p>
+          <h2 id="monthLabel"></h2>
+        </div>
+        <button id="nextMonth" class="icon-btn" aria-label="Next month">›</button>
+      </div>
+
+      <div class="weekdays">
+        <span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span>
+      </div>
+      <div id="calendar" class="calendar"></div>
+    </section>
+
+    <section class="card legend-card">
+      <div><span class="dot morning-dot"></span> Morning <b>₹100</b></div>
+      <div><span class="dot evening-dot"></span> Evening <b>₹100</b></div>
+      <div><span class="dot both-dot"></span> Both <b>₹200</b></div>
+    </section>
+
+    <section class="card month-summary">
+      <div class="section-title">
+        <div>
+          <p class="eyebrow">MONTHLY SUMMARY</p>
+          <h2 id="summaryMonth"></h2>
+        </div>
+        <div class="summary-actions">
+          <button id="clearMonth" class="danger-btn" type="button">Clear Month</button>
+          <button id="resetAll" class="reset-btn" type="button">Reset All</button>
+        </div>
+      </div>
+      <div class="summary-row"><span>☀️ Morning rides</span><strong id="summaryMorning">0</strong></div>
+      <div class="summary-row"><span>🌙 Evening rides</span><strong id="summaryEvening">0</strong></div>
+      <div class="summary-row"><span>🚗 Total rides</span><strong id="summaryRides">0</strong></div>
+      <div class="summary-row grand"><span>Amount to pay</span><strong id="summaryAmount">₹0</strong></div>
+    </section>
+
+    <footer class="footer-note">
+      <span class="status-dot"></span> Saved on this device · Works offline
+    </footer>
+  </main>
+
+  <div id="rideModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-box">
+      <button id="closeModal" class="close-btn" aria-label="Close">×</button>
+      <p class="eyebrow">MARK YOUR TRIP</p>
+      <h2 id="modalTitle">October 2</h2>
+      <p class="modal-subtitle">Tap a ride to mark it taken or missed.</p>
+
+      <div class="ride-buttons">
+        <button id="morningBtn" class="ride-btn" type="button">
+          <span class="ride-icon morning-icon">☀️</span>
+          <span><b>Morning</b><small>₹100 · Home → Virsad</small></span>
+          <span class="check" id="morningCheck">○</span>
+        </button>
+        <button id="eveningBtn" class="ride-btn" type="button">
+          <span class="ride-icon evening-icon">🌙</span>
+          <span><b>Evening</b><small>₹100 · Virsad → Home</small></span>
+          <span class="check" id="eveningCheck">○</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="iosInstallHint" class="ios-hint hidden" role="dialog" aria-modal="true">
+    <div class="ios-hint-box">
+      <button id="closeIosHint" class="close-btn" aria-label="Close">×</button>
+      <div class="hint-icon">📱</div>
+      <p class="eyebrow">INSTALL ON IPHONE</p>
+      <h2>Add Virsad Trips to Home Screen</h2>
+      <p>Tap <b>Share</b> in Safari, then choose <b>Add to Home Screen</b>.</p>
+      <button id="iosHintOk" class="primary-btn" type="button">Got it</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
