@@ -1,4 +1,4 @@
-const CACHE = "virsad-trip-tracker-v4";
+const CACHE = "virsad-trip-tracker-v5";
 const ASSETS = [
   "./",
   "./index.html",
@@ -35,5 +35,15 @@ self.addEventListener("fetch", event => {
         return response;
       }).catch(() => caches.match("./index.html"))
     )
+  );
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+      for (const c of list) { if ("focus" in c) return c.focus(); }
+      return self.clients.openWindow("./");
+    })
   );
 });

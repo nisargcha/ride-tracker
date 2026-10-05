@@ -145,6 +145,22 @@ h1 { margin: 0; font-size: 2rem; line-height: 1.1; }
 .choice-btn.yes[aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: #fff; }
 .choice-btn.no[aria-pressed="true"] { background: var(--no); border-color: var(--no); color: #fff; }
 
+/* reminders */
+.reminder { background: var(--warn-bg); border: 3px solid var(--warn); border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+.reminder h2 { margin: 0 0 8px; font-size: 1.15rem; color: var(--warn); }
+.rem-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid #e3c68f; }
+.rem-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.rem-btn { min-height: 52px; padding: 0 16px; border: 2px solid; border-radius: 10px; font: inherit; font-weight: 800; color: #fff; }
+.rem-btn.yes { background: var(--ok); border-color: var(--ok); }
+.rem-btn.no { background: var(--no); border-color: var(--no); }
+.reminders h2 { margin: 0 0 8px; font-size: 1.3rem; }
+.sched div { display: flex; flex-direction: column; padding: 10px 0; border-top: 1px solid var(--border); }
+.sched span { color: var(--muted); }
+.hint.left { text-align: left; }
+.reminders .summary-actions { border-top: 0; padding-top: 4px; }
+.choice-btn:disabled { opacity: .75; cursor: default; }
+.btn:disabled { opacity: .6; cursor: default; }
+
 /* small screens */
 @media (max-width: 480px) {
   .app { padding: 14px 8px 32px; }

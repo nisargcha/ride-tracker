@@ -4,6 +4,13 @@ const SIZE_KEY = "virsadTextSize";
 const TYPES = ["morning", "evening"];
 const SHORT = { morning: "AM", evening: "PM" };
 const MARK = { taken: "✓", skipped: "✗" };
+const LABEL = { morning: "Morning", evening: "Evening" };
+// Reminder times (24h). Sunday has no entry: no rides, always shown as ✗.
+const WEEKDAY = { morning: "10:00", evening: "17:30" };
+const SCHEDULE = { 1: WEEKDAY, 2: WEEKDAY, 3: WEEKDAY, 4: WEEKDAY, 5: WEEKDAY,
+                   6: { morning: "07:00", evening: "12:00" } };
+const REMIND_KEY = "virsadReminders";
+const SENT_KEY = "virsadSentReminders";
 const SIZES = [
   { name: "Normal", px: 18 },
   { name: "Large", px: 21 },
@@ -41,8 +48,13 @@ function loadState() {
 function saveState() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { console.error(e); }
 }
-function getRides(date) { return { ...(state[keyFor(date)] || {}) }; }
+const isSunday = (d) => d.getDay() === 0;
+function getRides(date) {
+  if (isSunday(date)) return { morning: "skipped", evening: "skipped" };
+  return { ...(state[keyFor(date)] || {}) };
+}
 function setRide(date, type, value) {
+  if (isSunday(date)) return;
   const key = keyFor(date);
   const rides = getRides(date);
   if (rides[type] === value) delete rides[type];   // tap again to undo
@@ -66,6 +78,8 @@ function monthStats() {
   let morning = 0, evening = 0, skipped = 0;
   Object.entries(state).forEach(([key, rides]) => {
     if (!inCurrentMonth(key)) return;
+    const [y, m, d] = key.split("-").map(Number);
+    if (new Date(y, m - 1, d).getDay() === 0) return;   // Sundays are not counted
     if (rides.morning === "taken") morning++;
     if (rides.evening === "taken") evening++;
     TYPES.forEach((t) => { if (rides[t] === "skipped") skipped++; });
@@ -118,6 +132,7 @@ function render() {
   $("summaryAmount").textContent = rupee(s.amount);
   $("heroAmount").textContent = rupee(s.amount);
   $("heroRides").textContent = plural(s.rides);
+  renderReminder();
 }
 
 /* ---------- month navigation (buttons, swipe, arrow keys) ---------- */
@@ -161,7 +176,12 @@ function closeModal() { $("rideModal").classList.add("hidden"); selectedDate = n
 function updateModal() {
   if (!selectedDate) return;
   const rides = getRides(selectedDate);
-  document.querySelectorAll(".choice-btn").forEach((b) => {
+  const sun = isSunday(selectedDate);
+  $("modalSub").textContent = sun
+    ? "Sunday: no rides. Both are marked ✗ automatically."
+    : "Was each ride taken? Tap again to undo.";
+  document.querySelectorAll("#rideModal .choice-btn").forEach((b) => {
+    b.disabled = sun;
     b.setAttribute("aria-pressed", String(rides[b.dataset.type] === b.dataset.value));
   });
 }
@@ -200,6 +220,139 @@ function applySize() {
   try { localStorage.setItem(SIZE_KEY, String(sizeIndex)); } catch {}
 }
 $("sizeBtn").addEventListener("click", () => { sizeIndex = (sizeIndex + 1) % SIZES.length; applySize(); });
+
+/* ---------- reminders ---------- */
+const toMin = (hhmm) => { const [h, m] = hhmm.split(":").map(Number); return h * 60 + m; };
+const fmt12 = (hhmm) => { const [h, m] = hhmm.split(":").map(Number); return `${h % 12 || 12}:${pad(m)} ${h < 12 ? "AM" : "PM"}`; };
+
+function dueRides(now = new Date()) {
+  const sch = SCHEDULE[now.getDay()];
+  if (!sch) return [];
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const rides = getRides(now);
+  return TYPES.filter((t) => !rides[t] && toMin(sch[t]) <= mins);
+}
+// In-app banner: shows rides whose time has passed today and are still unmarked.
+function renderReminder() {
+  const box = $("reminder");
+  const now = new Date();
+  const due = dueRides(now);
+  if (!due.length) { box.classList.add("hidden"); box.innerHTML = ""; return; }
+  const sch = SCHEDULE[now.getDay()];
+  box.innerHTML = "<h2>Please fill in today's rides</h2>" + due.map((t) =>
+    `<div class="rem-row"><span><b>${LABEL[t]}</b> ride (${fmt12(sch[t])}) is not marked yet</span>
+     <span class="rem-btns"><button type="button" class="rem-btn yes" data-type="${t}" data-value="taken">✓ Taken</button>
+     <button type="button" class="rem-btn no" data-type="${t}" data-value="skipped">✗ Not taken</button></span></div>`).join("");
+  box.classList.remove("hidden");
+}
+$("reminder").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-type]");
+  if (!b) return;
+  setRide(new Date(), b.dataset.type, b.dataset.value);
+  render();
+});
+
+function remindersOn() {
+  try { return localStorage.getItem(REMIND_KEY) === "1" && "Notification" in window && Notification.permission === "granted"; }
+  catch { return false; }
+}
+function notify(title, body, tag) {
+  const opts = { body, tag, icon: "icon-192.png", requireInteraction: true };
+  const fallback = () => { try { new Notification(title, opts); } catch {} };
+  if ("serviceWorker" in navigator) navigator.serviceWorker.ready.then((r) => r.showNotification(title, opts)).catch(fallback);
+  else fallback();
+}
+function tick() {
+  const now = new Date();
+  renderReminder();
+  if (!remindersOn()) return;
+  const sch = SCHEDULE[now.getDay()];
+  if (!sch) return;
+  const mins = now.getHours() * 60 + now.getMinutes();
+  const rides = getRides(now);
+  let sent = {};
+  try { sent = JSON.parse(localStorage.getItem(SENT_KEY)) || {}; } catch {}
+  TYPES.forEach((t) => {
+    const id = `${keyFor(now)}-${t}`;
+    const at = toMin(sch[t]);
+    if (rides[t] || sent[id] || mins < at || mins > at + 10) return;   // only near the set time
+    sent[id] = 1;
+    notify(`${LABEL[t]} ride reminder`, `Time to mark your ${t} ride (${fmt12(sch[t])}). Taken or not taken?`, id);
+  });
+  const today = keyFor(now);
+  Object.keys(sent).forEach((k) => { if (!k.startsWith(today)) delete sent[k]; });
+  try { localStorage.setItem(SENT_KEY, JSON.stringify(sent)); } catch {}
+}
+setInterval(tick, 30000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) tick(); });
+
+function updateRemindUI() {
+  const btn = $("notifyBtn"), st = $("notifyStatus");
+  if (!("Notification" in window)) {
+    btn.classList.add("hidden");
+    st.textContent = "This browser cannot show notifications. Use the phone calendar alarms below.";
+  } else if (Notification.permission === "denied") {
+    btn.disabled = true;
+    st.textContent = "Notifications are blocked. Allow them in your browser's site settings, then reload.";
+  } else {
+    const on = remindersOn();
+    btn.textContent = on ? "Turn notifications off" : "Turn notifications on";
+    st.textContent = on ? "Notifications are on." : "Notifications are off.";
+  }
+}
+$("notifyBtn").addEventListener("click", async () => {
+  try {
+    if (remindersOn()) localStorage.setItem(REMIND_KEY, "0");
+    else {
+      const p = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+      if (p === "granted") localStorage.setItem(REMIND_KEY, "1");
+    }
+  } catch {}
+  updateRemindUI();
+});
+
+// Calendar file: repeating weekly alarms that ring even when the app is closed.
+function nextDate(dow) {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + ((dow - d.getDay() + 7) % 7));
+  return d;
+}
+function icsTime(d, hhmm) {
+  const [h, m] = hhmm.split(":");
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${h}${m}00`;
+}
+function downloadAlarms() {
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const events = [];
+  const add = (type, hhmm, days, startDow) => events.push([
+    "BEGIN:VEVENT", `UID:virsad-${type}-${hhmm.replace(":", "")}-${days.replace(/,/g, "")}@virsadtrips`,
+    `DTSTAMP:${stamp}`, `DTSTART:${icsTime(nextDate(startDow), hhmm)}`, "DURATION:PT15M",
+    `RRULE:FREQ=WEEKLY;BYDAY=${days}`, `SUMMARY:Virsad Trips: mark your ${type} ride`,
+    "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:Mark your ${type} ride`, "TRIGGER:PT0M", "END:VALARM",
+    "END:VEVENT"].join("\r\n"));
+  add("morning", SCHEDULE[1].morning, "MO,TU,WE,TH,FR", 1);
+  add("evening", SCHEDULE[1].evening, "MO,TU,WE,TH,FR", 1);
+  add("morning", SCHEDULE[6].morning, "SA", 6);
+  add("evening", SCHEDULE[6].evening, "SA", 6);
+  const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Virsad Trips//EN", "CALSCALE:GREGORIAN",
+    ...events, "END:VCALENDAR"].join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+  a.download = "virsad-trip-alarms.ics";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+$("alarmBtn").addEventListener("click", downloadAlarms);
+
+function buildSchedule() {
+  const w = SCHEDULE[1], s = SCHEDULE[6];
+  $("scheduleList").innerHTML =
+    `<div><b>Monday to Friday</b><span>Morning ${fmt12(w.morning)}, Evening ${fmt12(w.evening)}</span></div>
+     <div><b>Saturday</b><span>Morning ${fmt12(s.morning)}, Afternoon ${fmt12(s.evening)}</span></div>
+     <div><b>Sunday</b><span>No rides, marked ✗ automatically</span></div>`;
+}
 
 /* ---------- keyboard ---------- */
 document.addEventListener("keydown", (e) => {
@@ -249,5 +402,8 @@ document.querySelectorAll("[data-price]").forEach((el) => {
   el.textContent = rupee(PRICE * Number(el.dataset.price));
 });
 applySize();
+buildSchedule();
+updateRemindUI();
 render();
+tick();
 showInstallButton();

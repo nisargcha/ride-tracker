@@ -28,6 +28,8 @@
       </div>
     </header>
 
+    <section id="reminder" class="reminder hidden" role="alert" aria-live="polite"></section>
+
     <section class="hero" aria-label="This month's total">
       <p class="hero-label">Amount to pay this month</p>
       <p class="hero-amount" id="heroAmount">₹0</p>
@@ -57,6 +59,18 @@
       <div><span class="pill taken">AM ✓</span> Morning ride taken (<span data-price="1"></span>)</div>
       <div><span class="pill skipped">PM ✗</span> Evening ride not taken</div>
       <div>AM is morning, PM is evening. A day with both rides taken costs <b data-price="2"></b>.</div>
+      <div>Sunday has no rides, so it always shows <span class="pill skipped">AM ✗</span> <span class="pill skipped">PM ✗</span></div>
+    </section>
+
+    <section class="panel reminders">
+      <h2>Reminders</h2>
+      <div id="scheduleList" class="sched"></div>
+      <p id="notifyStatus" class="hint left"></p>
+      <div class="summary-actions">
+        <button id="notifyBtn" class="btn primary" type="button">Turn notifications on</button>
+        <button id="alarmBtn" class="btn" type="button">Add alarms to phone calendar</button>
+      </div>
+      <p class="hint left">Notifications only appear while the app is open or running in the background. For alarms that always ring, add them to your phone calendar once.</p>
     </section>
 
     <section class="panel month-summary">
@@ -79,7 +93,7 @@
     <div class="modal-box">
       <button id="closeModal" class="close-btn" aria-label="Close">×</button>
       <h2 id="modalTitle"></h2>
-      <p class="modal-subtitle">Was each ride taken? Tap again to undo.</p>
+      <p class="modal-subtitle" id="modalSub">Was each ride taken? Tap again to undo.</p>
 
       <div class="ride-row">
         <div class="ride-name"><span class="ride-icon" aria-hidden="true">☀️</span>

@@ -13,3 +13,11 @@ Changes in this version:
 - Service worker cache bumped to v4 so phones pick up the update.
 
 Deployment: upload all files to the same folder on GitHub Pages (or any HTTPS host).
+
+Update 2 - Reminders:
+- Reminder times: Mon-Fri 10:00 AM and 5:30 PM; Saturday 7:00 AM and 12:00 PM. Edit SCHEDULE at the top of app.js.
+- Sundays have no rides: both rides always show as cross and cannot be changed (not counted in totals).
+- When a ride time has passed and it is unmarked, a banner at the top lets you tap Taken / Not taken.
+- Optional notifications (button in Reminders section) while the app is open or running in the background.
+- "Add alarms to phone calendar" downloads a .ics file with repeating weekly alarms; open it once on the phone.
+- Service worker cache bumped to v5.
