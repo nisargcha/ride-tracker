@@ -1,4 +1,4 @@
-const CACHE = "virsad-trip-tracker-v3";
+const CACHE = "virsad-trip-tracker-v4";
 const ASSETS = [
   "./",
   "./index.html",
